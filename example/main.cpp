@@ -1,9 +1,11 @@
+#include <optional>
 #include <QApplication>
-#include <QIcon>
 #include <QCommandLineParser>
-#include <QTranslator>
-#include <QLocale>
 #include <QFile>
+#include <QIcon>
+#include <QLocale>
+#include <QTranslator>
+#include <QLibraryInfo>
 
 #include "mainwindow.h"
 
@@ -61,10 +63,20 @@ int main(int argc, char *argv[])
     app.setOrganizationName("QHexEdit");
     app.setWindowIcon(QIcon(":images/qhexedit.ico"));
 
-    QString locale = QLocale::system().name();
-    QTranslator translator;
-    translator.load(QString("qhexedit_") + locale);
-    app.installTranslator(&translator);
+    QTranslator translator_app;
+    if (translator_app.load(QLocale(), "qhexedit", "_", ":/translations"))
+        QCoreApplication::installTranslator(&translator_app);
+
+    QTranslator translator_qt;
+
+    #if QT_VERSION < 0x060000
+    QString path = QLibraryInfo::location(QLibraryInfo::TranslationsPath);
+    #else
+    QString path = QLibraryInfo::path(QLibraryInfo::TranslationsPath);
+    #endif
+
+    if (translator_qt.load(QLocale(), "qt", "_", path))
+        QCoreApplication::installTranslator(&translator_qt);
 
     QCommandLineParser parser;
     parser.setApplicationDescription(QCoreApplication::translate("QHexEdit", "A hex editor application"));
@@ -87,11 +99,11 @@ int main(int argc, char *argv[])
 
         case Status::VersionRequested:
             parser.showVersion();
-            Q_UNREACHABLE_RETURN(0);
+            return 0;
 
         case Status::HelpRequested:
             parser.showHelp();
-            Q_UNREACHABLE_RETURN(0);
+            return 0;
     }
 
     if (query.hasFile)
